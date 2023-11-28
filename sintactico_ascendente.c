@@ -1,6 +1,7 @@
 #include<stdio.h>
 #include<stdlib.h>
 #include<string.h>
+#include <unistd.h>
 //structs
 typedef struct Node {
     char chr;
@@ -16,6 +17,7 @@ FILE* input;
 Stack* stack;
 char atom;
 int flag_reduce = 0;
+int offset_string_terminal=0;
 
 //functions
 void state_cero();
@@ -40,7 +42,9 @@ char peek(Stack*);
 void clean_stack(Stack*);
 void draw_stack_chr(Node*);
 void draw_stack(char);
-void print_string(long offset_string);
+void print_string(long );
+void print_readed_string();
+void print_results();
 int main(int argc, char* argv[]){
     // Validation to read input file
     if(argc > 1){
@@ -54,8 +58,10 @@ int main(int argc, char* argv[]){
                     exit(EXIT_FAILURE);
                 }
                 initialize(stack);
-                atom = getAtom();
 
+                atom = getAtom();
+                printf("\033[2J");
+                print_results();
                 state_cero();
 
                 fclose(input);
@@ -73,18 +79,20 @@ int main(int argc, char* argv[]){
 */
 void state_cero(){
     while (flag_reduce == 0){
-        draw_stack('0');
-        draw_stack_chr(stack->top);
+        
+    
         if(atom == 'a'){
             state_four();
         }else if(atom == '('){
             atom = getAtom();
+            print_results();
             state_three();
         }else if(atom == 'E'){
             state_two();
         }else if(atom == 'L'){
             // SPECIAL STATE
             atom = getAtom();
+            print_results();
             state_one();
         }else{
             printf("\033[1;31mError:\033[1;0m state0: unespected: \033[1;32m \'a\' \'(\' \'E\' \'L\'\033[1;0m\n");
@@ -94,13 +102,15 @@ void state_cero(){
     flag_reduce --;
 }
 void state_one(){
-    draw_stack('1');
-    draw_stack_chr(stack->top);
+    
+
     if(atom == ','){
         atom = getAtom();
+        print_results();
         state_six();
     }else if(atom == EOF){
         atom = getAtom();
+        print_results();
         state_five();
     }else{
         printf("\033[1;31mError:\033[1;0m state1: unespected: \033[1;32m \',\' \'EOF\' \033[1;0m\n");
@@ -109,25 +119,25 @@ void state_one(){
     flag_reduce--;
 }
 void state_two(){
-    draw_stack('2');
-    draw_stack_chr(stack->top);
+    
+
     reduce(4);
     flag_reduce--;
 }
 
 void state_three(){
     while(flag_reduce == 0){
-        draw_stack('3');
-        draw_stack_chr(stack->top);
         if(atom == 'a'){
             state_four();
         }else if(atom == '('){
             atom = getAtom();
+            print_results();
             state_three();
         }else if(atom == 'E'){
             state_two();
         }else if(atom== 'L'){
             atom = getAtom();
+            print_results();
             state_seven();
         }else{
             printf("\033[1;31mError:\033[1;0m state3: unespected: \033[1;32m \'a\' \'(\' \'E\' \'L\'\033[1;0m\n");
@@ -137,26 +147,27 @@ void state_three(){
     flag_reduce--;
 }
 void state_four(){
-    draw_stack('4');
-    draw_stack_chr(stack->top);
+    
+
     reduce(2);
     flag_reduce--;
 }
 void state_five(){
-    draw_stack('5');
-    draw_stack_chr(stack->top);
+    
+
     if(feof(input)){
         printf("ACEPTA\n");
     }
 }
 void state_six(){
     while(flag_reduce == 0){
-        draw_stack('6');
-        draw_stack_chr(stack->top);
+        
+    
         if(atom == 'a'){
             state_four();
         }else if(atom == '('){
             atom = getAtom();
+            print_results();
             state_three();
         }else if(atom == 'E'){
             state_eight();
@@ -168,12 +179,13 @@ void state_six(){
     flag_reduce--;
 }
 void state_seven(){
-    draw_stack('7');
-    draw_stack_chr(stack->top);
+    
+
     if(atom == ')'){
         state_nine();
     }else if(atom == ','){
         atom = getAtom();
+        print_results();
         state_six();
     }else{
         printf("\033[1;31mError\033[1;0m state7: unespected: \033[1;32m \')\' \',\' \033[1;0m\n");
@@ -182,14 +194,14 @@ void state_seven(){
     flag_reduce--;
 }
 void state_eight(){
-    draw_stack('8');
-    draw_stack_chr(stack->top);
+    
+
     reduce(3);
     flag_reduce--;
 }
 void state_nine(){
-    draw_stack('9');
-    draw_stack_chr(stack->top);
+    
+
     reduce(1);
     flag_reduce--;
 }
@@ -207,8 +219,7 @@ void reduce(int reduce){
     if(check_handdle(handdles[reduce-1])== 1){
         printf("\033[1;31mError\033[1;0m state9: \033[1;32m Reduce %d \033[1;0m\n",reduce);
     };
-    
-    //fseek(input,-1,SEEK_CUR);
+
     atom = no_terminal[reduce-1];
     
     push(stack,atom);
@@ -344,11 +355,22 @@ void draw_stack_chr(Node* node) {
         node = node->next;
     }
 }
-void print_string(long int offset_string){
-     printf("\033[1;35mSTRING-> ");
+void print_string(long  offset_string){
     for(int i = 0;i < offset_string;i++){
         fseek(input,i,SEEK_SET);
         printf("%c",getc(input));
     }
     printf("\033[1;0m\n");
+}
+
+void print_readed_string(){
+    fseek(input,-1,SEEK_SET);
+    printf("%c",getc(input));
+}
+
+void print_results(){
+    printf("\033[1;%ldH",ftell(input));
+    print_readed_string();
+    fflush(stdout);  // Limpia el buffer de salida
+    usleep(500000); 
 }
