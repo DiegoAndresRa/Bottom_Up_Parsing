@@ -18,6 +18,7 @@ Stack* stack;
 char atom;
 int flag_reduce = 0;
 int offset_string_terminal=0;
+int line = 1;
 
 //functions
 void state_cero();
@@ -42,9 +43,12 @@ char peek(Stack*);
 void clean_stack(Stack*);
 void draw_stack_chr(Node*);
 void draw_stack(char);
-void print_string(long );
+void print_string();
 void print_readed_string();
 void print_results();
+void print_state(int);
+void clean_stack_printed(int);
+void print_work_stak();
 int main(int argc, char* argv[]){
     // Validation to read input file
     if(argc > 1){
@@ -59,9 +63,15 @@ int main(int argc, char* argv[]){
                 }
                 initialize(stack);
 
-                atom = getAtom();
                 printf("\033[2J");
+
+                print_string();
+
+                atom = getAtom();
+
+
                 print_results();
+
                 state_cero();
 
                 fclose(input);
@@ -79,8 +89,7 @@ int main(int argc, char* argv[]){
 */
 void state_cero(){
     while (flag_reduce == 0){
-        
-    
+        print_state(0);
         if(atom == 'a'){
             state_four();
         }else if(atom == '('){
@@ -102,8 +111,7 @@ void state_cero(){
     flag_reduce --;
 }
 void state_one(){
-    
-
+    print_state(1);
     if(atom == ','){
         atom = getAtom();
         print_results();
@@ -119,15 +127,16 @@ void state_one(){
     flag_reduce--;
 }
 void state_two(){
-    
-
+    print_state(2);
     reduce(4);
     flag_reduce--;
 }
 
 void state_three(){
+    print_state(3);
     while(flag_reduce == 0){
         if(atom == 'a'){
+            print_work_stak();
             state_four();
         }else if(atom == '('){
             atom = getAtom();
@@ -147,22 +156,24 @@ void state_three(){
     flag_reduce--;
 }
 void state_four(){
-    
-
+    print_state(4);
     reduce(2);
     flag_reduce--;
 }
 void state_five(){
-    
-
-    if(feof(input)){
-        printf("ACEPTA\n");
+    print_state(5);
+    if(getc(input) == EOF){
+        printf("\033[7;1H");
+        printf("\n\033[1;32mAccept\n");
+    }else{
+        fseek(input,-1,SEEK_CUR);
+        printf("\033[7;1H");
+        printf("\n\033[1;31m No Accept:\033[1;0m state5: unespected: \033[1;32m EOF \033[1;0m\n");
     }
 }
 void state_six(){
+    print_state(6);
     while(flag_reduce == 0){
-        
-    
         if(atom == 'a'){
             state_four();
         }else if(atom == '('){
@@ -179,8 +190,7 @@ void state_six(){
     flag_reduce--;
 }
 void state_seven(){
-    
-
+    print_state(7);
     if(atom == ')'){
         state_nine();
     }else if(atom == ','){
@@ -194,14 +204,12 @@ void state_seven(){
     flag_reduce--;
 }
 void state_eight(){
-    
-
+    print_state(8);
     reduce(3);
     flag_reduce--;
 }
 void state_nine(){
-    
-
+    print_state(9);
     reduce(1);
     flag_reduce--;
 }
@@ -211,20 +219,26 @@ void state_nine(){
      ) _ (  /(__)\  )  (  )(_) ))(_) ))(__  )__) 
     (_) (_)(__)(__)(_)\_)(____/(____/(____)(____)
 */
-
+// 
 void reduce(int reduce){
     char* handdles[]= {"(L)","a","L,E","E"};
     char no_terminal[]= {'E','E','L','L'};
     
+    // verificamos si existe el handdle en la pila donde almacenamos lo que vamos leyendo y los simbolos no-terminales de las reducciones
     if(check_handdle(handdles[reduce-1])== 1){
         printf("\033[1;31mError\033[1;0m state9: \033[1;32m Reduce %d \033[1;0m\n",reduce);
+        exit(EXIT_FAILURE);
     };
 
     atom = no_terminal[reduce-1];
     
-    push(stack,atom);
+    
     
     flag_reduce = strlen(handdles[reduce-1]);
+    clean_stack_printed(flag_reduce);
+
+    push(stack,atom);
+    print_work_stak();
 }
 
 int check_handdle(char* handdle){
@@ -232,31 +246,21 @@ int check_handdle(char* handdle){
 }
 
 int look_for(char* handdle){
-    printf("\033[1;37mHANDDLE\033[1;0m-> %s\n",handdle);
     int leng_handdle = strlen(handdle);
-    printf("\033[1;37mLENG\033[1;0m-> %d\n",leng_handdle);
 
     if(leng_handdle == 1){
-        printf("look_for 1\n");
         if(*(handdle) != pop(stack)){
             printf(" Error: unespected atom: %c\n",*(handdle));
             return 1;
         }
     }else{
-        int leng_handdle_memory = leng_handdle-1;
+        int leng_handdle_memory = leng_handdle-1; // se resta uno por los indices para el recorrido en memoria 
         for(int i = 0; i < leng_handdle; i++){
-            printf("look_for >1\n");
-            printf("HANDDLE -> %s\n",handdle);
-            printf("--------------\n");
             char chr_stack = pop(stack);
-            printf("STACK -> %c\n",chr_stack);
-            
             if(*(handdle+(leng_handdle_memory-i)) != chr_stack){
-                printf("!!!! %c\n",*(handdle+(leng_handdle_memory-i)));
                 printf(" \033[1;31mError:\033[1;0m unespected atom: %c\n",*(handdle+(leng_handdle-i)));
                 return 1;
             }
-            printf("--------------\n");
         }
     }
     return 0;
@@ -269,11 +273,11 @@ int look_for(char* handdle){
     \___)(_____)(_/\/\_)(__)  (____)(____)(_/\/\_)(____)(_)\_) (__)(__)(__)(_)\_) (__) 
 */
 char getAtom(){
-    print_string(ftell(input));
     if(getc(input) != EOF){
         fseek(input,-1,SEEK_CUR);
         atom = getc(input);
         push(stack,atom);
+        print_work_stak();
     }else{
         atom = EOF;
         push(stack,atom);
@@ -355,22 +359,63 @@ void draw_stack_chr(Node* node) {
         node = node->next;
     }
 }
-void print_string(long  offset_string){
-    for(int i = 0;i < offset_string;i++){
-        fseek(input,i,SEEK_SET);
+void print_string(){
+    printf("\033[1;1H");
+    printf("Analizando ...\n\n");
+    printf("\033[3;1H");
+    while(getc(input) != EOF){
+        fseek(input,-1,SEEK_CUR);
         printf("%c",getc(input));
     }
-    printf("\033[1;0m\n");
+    fseek(input,0,SEEK_SET);
+    printf("\n");
 }
 
 void print_readed_string(){
-    fseek(input,-1,SEEK_SET);
-    printf("%c",getc(input));
+    if(ftell(input) == 1){
+        fseek(input,-1,SEEK_CUR); 
+        printf("\033[1;36m%c\033[1;0m",getc(input)); 
+    }else{
+        fseek(input,-2,SEEK_CUR); 
+        if(ftell(input) == 0){
+            printf("\033[3;1H");
+            printf("%c",getc(input)); 
+        }else{
+            printf("\033[3;%ldH",ftell(input)+1);
+            printf("%c",getc(input)); 
+        }
+        printf("\033[3;%ldH",ftell(input)+1);
+        printf("\033[1;36m%c\033[1;0m",getc(input)); 
+    }
+
 }
 
 void print_results(){
-    printf("\033[1;%ldH",ftell(input));
+    printf("\033[3;%ldH",ftell(input));
     print_readed_string();
     fflush(stdout);  // Limpia el buffer de salida
-    usleep(500000); 
+    usleep(800000); 
+}
+
+void print_state(int state_work){
+    printf("\033[5;%dH",1*line);
+    printf("%d",state_work);
+    printf("\033[3;1H");
+    line++;
+}
+
+void clean_stack_printed(int positions){
+    for(int i = 0;i<positions;i++){
+        printf("\033[5;%dH",1*line);
+        printf(" ");
+        line --;
+        usleep(1000000); 
+    }
+}
+
+void print_work_stak(){
+    printf("\033[5;%dH",1*line);
+    printf("%c",peek(stack));
+    printf("\033[4;1H");
+    line ++;
 }
