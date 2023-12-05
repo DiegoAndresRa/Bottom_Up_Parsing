@@ -325,7 +325,7 @@ void print_results(){
     printf("\033[3;%ldH",ftell(input));
     print_readed_string();
     fflush(stdout);  // Limpia el buffer de salida
-    usleep(1500000); 
+    usleep(900000); 
 }
 
 /*
@@ -348,7 +348,7 @@ void print_state_reduce(int state_work){
     fflush(stdout);  // Limpia el buffer de salida
     printf("\033[3;1H");
     line++;
-    usleep(1500000);
+    usleep(900000);
 }
 /*
     Posiciona el cursor tantos caracteres atras como el tamaño del handdle
@@ -360,7 +360,7 @@ void clean_stack_printed(int positions){
             printf(" ");
             fflush(stdout);  // Limpia el buffer de salida
             line --;
-            usleep(1500000); 
+            usleep(900000); 
         }
     }
 }
@@ -373,7 +373,7 @@ void print_work_stak(){
     fflush(stdout);  // Limpia el buffer de salida
     printf("\033[4;1H");
     line ++;
-    usleep(1500000); 
+    usleep(900000); 
 }
 /*
     Impresión de la cadena de atomos
