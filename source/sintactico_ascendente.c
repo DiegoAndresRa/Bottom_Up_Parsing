@@ -78,8 +78,6 @@ int main(int argc, char* argv[]){
                 // posiciona el cursor en un renglondiferente
                 printf("\033[7;1H");
 
-
-                fclose(offsett);
                 fclose(input);
         }
     }else{
